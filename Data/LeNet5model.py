@@ -7,6 +7,8 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense  # type
 from sklearn.metrics import f1_score
 import matplotlib.pyplot as plt
 import random
+from typing import Tuple, List, Dict, Optional
+
 
 # Отключение проверки SSL-сертификата.
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -14,7 +16,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 class DataLoader:
     """Класс для загрузки и подготовки данных MNIST."""
 
-    def __init__(self, test_size=0.2, random_state=42):
+    def __init__(self, test_size: float = 0.2, random_state: int = 42):
         """
         Инициализация DataLoader.
 
@@ -24,9 +26,13 @@ class DataLoader:
         """
         self.test_size = test_size
         self.random_state = random_state
+        self.x_train: np.ndarray
+        self.y_train: np.ndarray
+        self.x_test: np.ndarray
+        self.y_test: np.ndarray
         self.x_train, self.y_train, self.x_test, self.y_test = self.load_and_prepare_data()
 
-    def load_and_prepare_data(self):
+    def load_and_prepare_data(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Загружает данные MNIST, разделяет на обучающий и валидационный наборы, нормализует и добавляет измерение для каналов.
 
@@ -56,7 +62,7 @@ class DataLoader:
 class LeNet5:
     """Класс для создания и обучения модели LeNet-5."""
 
-    def __init__(self, input_shape=(28, 28, 1)):
+    def __init__(self, input_shape: Tuple[int, int, int] = (28, 28, 1)):
         """
         Инициализация модели LeNet-5.
 
@@ -66,7 +72,7 @@ class LeNet5:
         self.input_shape = input_shape
         self.model = self.build_model()
 
-    def build_model(self):
+    def build_model(self) -> Sequential:
         """
         Создает модель LeNet-5.
 
@@ -85,7 +91,7 @@ class LeNet5:
         ])
         return model
 
-    def compile_model(self, optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy']):
+    def compile_model(self, optimizer: str = 'adam', loss: str = 'sparse_categorical_crossentropy', metrics: List[str] = ['accuracy']):
         """
         Компилирует модель LeNet-5.
 
@@ -96,7 +102,8 @@ class LeNet5:
         """
         self.model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
-    def train(self, x_train, y_train, x_test, y_test, epochs=10, batch_size=128, validation_data=None):
+    def train(self, x_train: np.ndarray, y_train: np.ndarray, x_test: np.ndarray, y_test: np.ndarray, epochs: int = 10, batch_size: int = 128, validation_data: Optional[Tuple[np.ndarray, np.ndarray]] = None) -> float:
+
          """
         Обучает модель LeNet-5 на предоставленных обучающих данных.
 
@@ -126,7 +133,7 @@ class LeNet5:
 class ActiveLearner:
     """Класс для реализации стратегий активного обучения."""
 
-    def __init__(self, model, x_train_full, y_train_full):
+    def __init__(self, model: Sequential, x_train_full: np.ndarray, y_train_full: np.ndarray):
         """
         Инициализация ActiveLearner.
 
@@ -139,7 +146,7 @@ class ActiveLearner:
         self.x_train_full = x_train_full
         self.y_train_full = y_train_full
 
-    def least_confidence(self, x_unlabeled, num_samples):
+    def least_confidence(self, x_unlabeled: np.ndarray, num_samples: int) -> np.ndarray:
         """
         Реализует стратегию активного обучения Least Confidence (LC) для выбора наиболее неопределенных данных.
 
@@ -166,7 +173,7 @@ class ActiveLearner:
 
         return indices
 
-    def bald(self, x_unlabeled, num_samples):
+    def bald(self, x_unlabeled: np.ndarray, num_samples: int) -> np.ndarray:
         """
         Реализует стратегию активного обучения BALD (Bayesian Active Learning by Disagreement) для выбора данных с наибольшей неопределенностью.
 
@@ -208,8 +215,8 @@ f1_full = lenet5.train(x_train_full, y_train_full, x_test, y_test)
 print(f'F1 на тестовом наборе для модели, обученной на всем датасете: {f1_full:.4f}')
 
 # Случайный выбор данных и обучение.
-percentages = [0.01, 0.1, 0.2]
-f1_results = {p: [] for p in percentages}
+percentages: List[float] = [0.01, 0.1, 0.2]
+f1_results: Dict[float, List[float]] = {p: [] for p in percentages}
 
 for p in percentages:
     # Повтор 5 раз по ТЗ.
@@ -225,14 +232,16 @@ for p in percentages:
         f1_results[p].append(f1)
 
 # Расчет среднего F1 для каждой выборки.
-avg_f1_values = []
+avg_f1_values: List[float] = []
 for p, f1_list in f1_results.items():
     avg_f1 = sum(f1_list) / len(f1_list)
     avg_f1_values.append(avg_f1)
     print(f'Средний F1 на тестовом наборе для {p * 100}% данных: {avg_f1:.4f}')
 
+
 # Активное обучение.
-f1_active_learning = {p: {'LC': [], 'BALD': []} for p in percentages}
+f1_active_learning: Dict[float, Dict[str, List[float]]] = {p: {'LC': [], 'BALD': []} for p in percentages}
+
 
 for p in percentages:
     # Повтор 5 раз по ТЗ.
@@ -265,8 +274,9 @@ for p in percentages:
         f1_bald = lenet5_bald.train(x_train_bald, y_train_bald, x_test, y_test)
         f1_active_learning[p]['BALD'].append(f1_bald)
 
+
 # Расчет среднего F1 для активного обучения.
-avg_f1_active = {}
+avg_f1_active: Dict[float, Dict[str, float]] = {}
 for p, methods in f1_active_learning.items():
     avg_f1_active[p] = {}
     for method, f1_list in methods.items():
@@ -275,8 +285,8 @@ for p, methods in f1_active_learning.items():
         print(f'Средний F1 на тестовом наборе для {p * 100}% данных с помощью {method}: {avg_f1:.4f}')
 
 # Построение графика.
-labels = ['Полный датасет'] + [f'{p * 100}%' for p in percentages]
-f1_values = [f1_full] + avg_f1_values
+labels: List[str] = ['Полный датасет'] + [f'{p * 100}%' for p in percentages]
+f1_values: List[float] = [f1_full] + avg_f1_values
 
 plt.figure(figsize=(12, 6))
 plt.subplot(1, 2, 1)
